@@ -130,7 +130,9 @@ for box in y_pred_thresh[0]:
     ymin = box[3] * orig_images[0].shape[0] / img_height
     xmax = box[4] * orig_images[0].shape[1] / img_width
     ymax = box[5] * orig_images[0].shape[0] / img_height
-    color = colors[int(box[0])]
+    color = np.dot(colors[int(box[0])],255)
+    color = color[0:3]
+    print(color)
     label = '{}: {:.2f}'.format(classes[int(box[0])], box[1])
     image = cv2.rectangle(image,(int(xmin), int(ymin)), (int(xmax), int(ymax)), color, 2)
     image = cv2.putText(image,label,(int(xmin),int(ymin)),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),2,cv2.LINE_AA)
