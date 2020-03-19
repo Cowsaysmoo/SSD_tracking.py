@@ -81,62 +81,75 @@ input_images = [] # Store resized versions of the images here.
 # We'll only load one image in this example.
 img_path = 'examples/person-bike.jpg'
 
-#####
+capture = cv2.VideoCapture(0)
+frameRate = capture.get(cv2.CAP_PROP_FPS)
+has_frame = 1;
+escape = 0;
+while has_frame and not escape:
+    has_frame, imageFeed = capture.read()
 
-orig_images.append(imread(img_path))
-img = image.load_img(img_path, target_size=(img_height, img_width))
-img = image.img_to_array(img)
-input_images.append(img)
-input_images = np.array(input_images)
+    #####
 
-#####
+    #orig_images.append(imread(img_path))
+    #orig_images = np.append(orig_images,imageFeed, 0)
+    #imageFeed = image.load_img(imageFeed, target_size=(img_height, img_width))
+    imageResize = cv2.resize(imageFeed, (img_height, img_width))
+    #input_images = np.append(input_images, imageResize, 0)
+    #input_images = np.array(input_images)
 
-y_pred = model.predict(input_images)
+    #####
 
-#####
+    y_pred = model.predict(np.expand_dims(imageResize, 0))
 
-confidence_threshold = 0.5
+    #####
 
-y_pred_thresh = [y_pred[k][y_pred[k,:,1] > confidence_threshold] for k in range(y_pred.shape[0])]
+    confidence_threshold = 0.5
 
-np.set_printoptions(precision=2, suppress=True, linewidth=90)
-print("Predicted boxes:\n")
-print('   class   conf xmin   ymin   xmax   ymax')
-print(y_pred_thresh[0])
+    y_pred_thresh = [y_pred[k][y_pred[k,:,1] > confidence_threshold] for k in range(y_pred.shape[0])]
 
-#####
+    np.set_printoptions(precision=2, suppress=True, linewidth=90)
+    #print("Predicted boxes:\n")
+    #print('   class   conf xmin   ymin   xmax   ymax')
+    #print(y_pred_thresh[0])
 
-# Display the image and draw the predicted boxes onto it.
+    #####
 
-# Set the colors for the bounding boxes
-colors = plt.cm.hsv(np.linspace(0, 1, 21)).tolist()
-classes = ['background',
-           'aeroplane', 'bicycle', 'bird', 'boat',
-           'bottle', 'bus', 'car', 'cat',
-           'chair', 'cow', 'diningtable', 'dog',
-           'horse', 'motorbike', 'person', 'pottedplant',
-           'sheep', 'sofa', 'train', 'tvmonitor']
+    # Display the image and draw the predicted boxes onto it.
 
-plt.figure(figsize=(20,12))
+    # Set the colors for the bounding boxes
+    colors = plt.cm.hsv(np.linspace(0, 1, 21)).tolist()
+    classes = ['background',
+               'aeroplane', 'bicycle', 'bird', 'boat',
+               'bottle', 'bus', 'car', 'cat',
+               'chair', 'cow', 'diningtable', 'dog',
+               'horse', 'motorbike', 'person', 'pottedplant',
+               'sheep', 'sofa', 'train', 'tvmonitor']
 
-current_axis = plt.gca()
-#plt.imshow(orig_images[0])
-image = orig_images[0]
-image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    plt.figure(figsize=(20,12))
 
-for box in y_pred_thresh[0]:
-    # Transform the predicted bounding boxes for the 300x300 image to the original image dimensions.
-    xmin = box[2] * orig_images[0].shape[1] / img_width
-    ymin = box[3] * orig_images[0].shape[0] / img_height
-    xmax = box[4] * orig_images[0].shape[1] / img_width
-    ymax = box[5] * orig_images[0].shape[0] / img_height
-    color = np.dot(colors[int(box[0])],255)
-    color = color[0:3]
-    print(color)
-    label = '{}: {:.2f}'.format(classes[int(box[0])], box[1])
-    image = cv2.rectangle(image,(int(xmin), int(ymin)), (int(xmax), int(ymax)), color, 2)
-    image = cv2.putText(image,label,(int(xmin),int(ymin)),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),2,cv2.LINE_AA)
+    current_axis = plt.gca()
+    #plt.imshow(orig_images[0])
+    image = imageFeed
+    #image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-cv2.imshow("image", image)
-cv2.waitKey(0)
+    for box in y_pred_thresh[0]:
+        # Transform the predicted bounding boxes for the 300x300 image to the original image dimensions.
+        xmin = box[2] * image.shape[1] / img_width
+        ymin = box[3] * image.shape[0] / img_height
+        xmax = box[4] * image.shape[1] / img_width
+        ymax = box[5] * image.shape[0] / img_height
+        color = np.dot(colors[int(box[0])],255)
+        color = color[0:3]
+        colorSwap = color[0]  #Manual RGB to BGR swap
+        color[0] = color[2]
+        color[2] = colorSwap
+        label = '{}: {:.2f}'.format(classes[int(box[0])], box[1])
+        image = cv2.rectangle(image,(int(xmin), int(ymin)), (int(xmax), int(ymax)), color, 2)
+        image = cv2.putText(image,label,(int(xmin),int(ymin) - 5),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),2,cv2.LINE_AA)
+
+    cv2.imshow("image", image)
+    k = cv2.waitKey(int((1/frameRate)*1000))
+    if k == 27:
+        print("Pressed esc")
+        escape = True
 cv2.destroyAllWindows()
